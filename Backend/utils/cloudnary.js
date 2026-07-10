@@ -13,8 +13,10 @@ cloudinary.config({
 const uploadOnCloudinary = async (localpath) => {
     try {
         if (!localpath) return
-        const response = await cloudinary.uploader.upload('localpath')
-        console.log("file has been updloaded on cloudinary", response.url)
+        const response = await cloudinary.uploader.upload(localpath)
+        console.log("file has been updloaded on cloudinary and this is the cloudnary response", response)
+        fs.unlinkSync(localpath)
+        
         return response
 
     } catch (error) {

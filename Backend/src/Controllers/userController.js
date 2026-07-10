@@ -8,29 +8,30 @@ import { uploadOnCloudinary } from "../../utils/cloudnary.js"
 
 const registerUser = async (req, res) => {
 
-    const { username, fullname, email, password } = req.body
-    console.log("user email", email, password)
+    const { userName, fullName, email, password } = req.body
+    console.log("req body response",req.body)
 
-    if ([username, fullname, password, email].some((field => field?.trim() === ''))) {
+    if ([userName, fullName, password, email].some((field => field?.trim() === ''))) {
         throw new ApiError(400, "all fields are required")
     }
 
     let existedUser = await User.findOne({
-        $or: [{ username }, { email }]
+        $or: [{ userName }, { email }]
     })
     if (existedUser) {
         throw new ApiError(409, "User Alreday Has Account")
     }
 
-    const avatarlocalpath = req.files?.avtar[0]?.path
-    const coverImagepath = req.files?.coverImage?.path
+    console.log("req files",req.files)
+    const avatarlocalpath = req.files?.avatar?.[0]?.path
+    const coverImagepath = req.files?.coverImage?.[0]?.path
+    console.log("avatar local path",avatarlocalpath)
+    console.log("cover image paht loacl",coverImagepath)
 
     if (!avatarlocalpath) {
         throw new ApiError(400, "Avtar files required")
     }
-    if (!coverImagepath) {
-        throw new ApiError(400, "cover image did not find")
-    }
+  
 
     const avatrStored = await uploadOnCloudinary(avatarlocalpath)
     const coverImageStore = await uploadOnCloudinary(coverImagepath)
@@ -40,12 +41,12 @@ const registerUser = async (req, res) => {
     }
 
     const user = await User.create({
-        fullName: fullname,
+        fullName: fullName,
         avatar: avatrStored.url,
-        coverImage: coverImageStore.url,
+        coverImage: coverImageStore.url||'',
         email: email,
         password: password,
-        userName: username.toLowerCase()
+        userName: userName.toLowerCase()
     })
 
     const createdUser = await User.findById(user._id).select(
