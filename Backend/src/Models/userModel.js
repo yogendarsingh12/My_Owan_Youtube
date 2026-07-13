@@ -53,38 +53,39 @@ const userSchema = new Schema({
 
 }, { timestamps: true })
 
-userSchema.pre("save", async function () {
-    if (!this.isModified("password")) {
-        return;
-    }
 
-    this.password = await bcrypt.hash(this.password, 10);
-});
+userSchema.pre("save", async function (next) {
+    if (!this.isModified("password")) return
+    return this.password = await bcrypt.hashSync(this.password, 10)
+})
 
-userSchema.methods.isPasswordCorrect=async function(password) {
-    return await bcrypt.compare(password,this.password)
-    
+
+userSchema.methods.comparePassword = async function (password) {
+    return await bcrypt.compareSync(password, this.password)
+
 }
 
-userSchema.methods.genrateAccessToken= function(){
-    const payload={
-        _id:this._id,
-        email:this.email,
-        userName:this.userName,
-        fullName:this.fullName
+userSchema.methods.generateJwtToken = async function () {
+    let payload = {
+        userName: this.userName,
+        id: this._id
     }
-    return jwt.sign(payload,process.env.ACCESS_TOKEN_SECRET,{expiresIn:process.env.ACCESS_TOKEN_EXPRIY})
+    return await jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: process.env.ACCESS_TOKEN_EXPRIY
+    })
+
 }
 
-userSchema.methods.genrateRefresToken= function(){
-     const payload={
-        _id:this._id,
-        email:this.email,
-        userName:this.userName,
-        fullName:this.fullName
+userSchema.methods.generateRefreshToken= async function(){
+    let payload={
+        id:this._id,
+        userName:this.userName
     }
-    return jwt.sign(payload,process.env.REFRESH_TOKEN_SECRET,{expiresIn:process.env.REFRESH_TOKEN_EXPRIY})
-    
+    return await jwt.sign(payload,process.env.REFRESH_TOKEN_SECRET,{
+        expiresIn:process.env.REFRESH_TOKEN_EXPIRY
+    })
 }
+
+
 
 export const User = model("User", userSchema)
