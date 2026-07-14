@@ -3,16 +3,22 @@
 import { uploadOnCloudinary } from "../../utils/cloudnary.js"
 import { User } from "../Models/userModel.js"
 
+import jwt from "jsonwebtoken"
+
 
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
         const user = await User.findById(userId)
+        if (!user) {
+            return res.status(404).json({ success: false, message: "user not found while genrating tokens" })
+        }
+        
         const accessToken = await user.generateJwtToken()
-        const refreshToken = await user.generateRefreshToken()
+        const refrashToken = await user.generateRefreshToken()
 
-        user.refreshToken = refreshToken
+        user.refrashToken = refrashToken
         await user.save({ validateBeforeSave: false })
-        return { accessToken, refreshToken }
+        return { accessToken, refrashToken }
 
     } catch (error) {
         console.log(error)
@@ -129,9 +135,9 @@ const loginUser = async (req, res) => {
 
         }
 
-        const { refreshToken, accessToken } = await generateAccessAndRefreshTokens(isUser._id)
+        const { refrashToken, accessToken } = await generateAccessAndRefreshTokens(isUser._id)
 
-        const LoggedInUser = await User.findById(isUser._id).select("-password -refreshToken")
+        const LoggedInUser = await User.findById(isUser._id).select("-password  -refrashToken")
 
         const options = {
             httpOnly: true,
@@ -141,13 +147,13 @@ const loginUser = async (req, res) => {
 
         return res.status(200)
             .cookie("accessToken", accessToken, options)
-            .cookie("refreshToken", refreshToken, options)
+            .cookie("refrashToken", refrashToken, options)
             .json({
                 success: true,
                 message: "Login SuccessFully",
                 user: LoggedInUser,
                 accessToken: accessToken,
-                refreshToken: refreshToken
+                refrashToken: refrashToken
 
             })
 
@@ -161,31 +167,79 @@ const loginUser = async (req, res) => {
 }
 
 const logoutUser = async (req, res) => {
-    await User.findByIdAndUpdate(req.userInfo._id, {
-        $set: {
-            refreshToken: undefined
+
+    try {
+        console.log("logout request getting", req.userInfo)
+        await User.findByIdAndUpdate(req.userInfo._id, {
+            $set: {
+                refrashToken: null
+            }
+        },
+            {
+                returnDocument: 'after'
+            })
+
+        const options = {
+            httpOnly: true,
+            secure: true,
         }
-    }, {
-        new: true
-    })
-    
-    const options={
-        httpOnly:true,
-        secure:true,
+
+        res.status(200)
+            .clearCookie("accessToken", options)
+            .clearCookie("refrashToken", options)
+            .json({
+                success: true,
+                message: "Logout Sccuess fully"
+            })
+
+    } catch (error) {
+
+        console.log(error)
+        return res.status(500).json({ success: false, message: "Internal Server Error While User Logout" })
+
     }
-
-    res.status(200)
-    .clearCookie("accessToken",options)
-    .clearCookie("refreshToken",options)
-    .json({success:true,
-        message:"Logout Sccuess fully"
-    })
-
 
 }
 
 
-const refreshAccessToken = async (req, res) => {
+const refrashAccessToken = async (req, res) => {
+
+    try {
+        const incomingRefrashToken = req.cookies?.refrashToken || req.body.refrashToken
+
+        if (!incomingRefrashToken) {
+            return res.status(404).json({ success: false, message: "Refrash Token Not Found" })
+        }
+
+        const decodedRefrashToken = await jwt.verify(incomingRefrashToken, process.env.REFRESH_TOKEN_SECRET)
+
+        const user = await User.findById(decodedRefrashToken.id)
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: "UnAurhorized Access" })
+        }
+
+        if (incomingRefrashToken === user.refrashToken) {
+            const { refrashToken, accessToken } = await generateAccessAndRefreshTokens(user._id)
+
+            const Options = {
+                httpOnly: true,
+                Secure: true
+            }
+
+            res.status(200).cookie("accessToken", accessToken, Options)
+                .cookie("NewrefrashToken", refrashToken, Options)
+                .json({ success: true, message: "Refrash Token Generated" })
+        }
+        else {
+            return res.status(404).json({ success: false, message: "UnAurhorized Access" })
+
+        }
+    } catch (error) {
+        console.log(error)
+         return res.status(500).json({ success: false, message: "internal server error could not genrate Refrash Token" })
+
+    }
 
 }
 
@@ -196,5 +250,5 @@ const refreshAccessToken = async (req, res) => {
 
 
 export {
-    registerUser, loginUser, logoutUser, getAllUsers, refreshAccessToken
+    registerUser, loginUser, logoutUser, getAllUsers, refrashAccessToken
 }

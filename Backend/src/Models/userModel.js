@@ -49,6 +49,7 @@ const userSchema = new Schema({
     },
     refrashToken: {
         type: String,
+        default:undefined
     }
 
 }, { timestamps: true })

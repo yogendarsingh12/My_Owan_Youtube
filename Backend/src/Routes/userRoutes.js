@@ -1,5 +1,5 @@
 import express from "express"
-import { getAllUsers, loginUser, logoutUser, registerUser } from "../Controllers/userController.js"
+import { getAllUsers, loginUser, logoutUser, refrashAccessToken, registerUser } from "../Controllers/userController.js"
 
 import { upload } from "../Middlewares/multerMiddleware.js"
 
@@ -25,6 +25,8 @@ router.post("/login", loginUser)
 router.get("/logout",auth,logoutUser)
 
 router.get("/allusers",auth,getAllUsers)
+
+router.get("/refrashToken",refrashAccessToken)
 
 export default router
 
