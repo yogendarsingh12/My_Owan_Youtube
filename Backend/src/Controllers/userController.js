@@ -12,7 +12,7 @@ const generateAccessAndRefreshTokens = async (userId) => {
         if (!user) {
             return res.status(404).json({ success: false, message: "user not found while genrating tokens" })
         }
-        
+
         const accessToken = await user.generateJwtToken()
         const refrashToken = await user.generateRefreshToken()
 
@@ -115,7 +115,9 @@ const getAllUsers = async (req, res) => {
 
 const loginUser = async (req, res) => {
     try {
+        console.log("reqest ", req.body)
         const { userName, email, password } = req.body
+
 
         if (!userName || !password || !email) {
             return res.status(404).json({ success: false, message: "username or passoword required" })
@@ -126,8 +128,8 @@ const loginUser = async (req, res) => {
         if (!isUser) {
             return res.status(404).json({ success: false, message: "User Not Found" })
         }
-
-        if (isUser && (isUser.comparePassword(password))) {
+        const isPassword = await isUser.comparePassword(password)
+        if (isUser && isPassword) {
             console.log("validation successfully user exist and password also matching")
         }
         else {
@@ -237,18 +239,180 @@ const refrashAccessToken = async (req, res) => {
         }
     } catch (error) {
         console.log(error)
-         return res.status(500).json({ success: false, message: "internal server error could not genrate Refrash Token" })
+        return res.status(500).json({ success: false, message: "internal server error could not genrate Refrash Token" })
 
     }
 
 }
 
 
+const changeCurrentUserPassword = async (req, res) => {
+
+    try {
+        const { newPassword, oldPassword } = req.body
+
+
+        const userId = req.userInfo.id
+
+        const existUser = await User.findById(userId).select("-refrashToken ")
+
+        if (!existUser) {
+            return res.status(404).json({ success: false, message: "User Not Found" })
+
+        }
+        const isPassword = await existUser.comparePassword(oldPassword)
+        if (isPassword) {
+            existUser.password = newPassword
+            await existUser.save({ validateBeforeSave: false })
+
+            res.status(200).json({ success: true, message: "Password Changed Successfully" })
+
+        }
+        else {
+            res.status(404).json({ success: false, message: "Invalid Password " })
+
+        }
+
+
+    } catch (error) {
+
+        console.log(error)
+
+        return res.status(500).json({ success: false, message: "internal server error while Changing Password " })
+
+    }
+
+
+
+
+
+}
+
+
+const forgetPassword = async (req, res) => {
+
+    try {
+        const { email, newPassword } = req.body
+        console.log("forget password request")
+
+        if (!email || !newPassword) {
+            return res.status(404).json({ success: false, message: "email and password are reqired" })
+        }
+
+        let existedUser = await User.findOne({ email: email }).select("-refrashToken")
+
+        if (!existedUser) {
+            return res.status(404).json({ success: false, message: "User Does Not Exist" })
+
+        }
+        existedUser.password = newPassword
+        existedUser.save({ validateBeforeSave: false })
+
+        res.status(200).json({ success: true, message: "Password Changed Successfully" })
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({ success: false, message: "Internal server Error While changing User Password" })
+    }
+
+}
+
+
+
+const getCurrentUser = async (req, res) => {
+    try {
+        const currentUser = req.userInfo
+
+        res.status(200).json({ user: currentUser, success: true })
+
+    } catch (error) {
+        res.status(500).json({ message: "internal serveror error while getting current user", success: false })
+
+    }
+
+}
+
+const updateAccountDetails = async (req, res) => {
+
+}
+
+
+const updateUserAvatar = async (req, res) => {
+   
+    try {
+
+        const avatarLocalpath = req.file?.path
+
+        if (!avatarLocalpath) {
+            return res.status(404).json({ success: false, message: "avatar required" })
+        }
+
+        const avatar = await uploadOnCloudinary(avatarLocalpath)
+        const user = req.userInfo
+
+        let existUser = await User.findById(user._id).select("-password -refrashToken")
+
+        if (!existUser) {
+            return res.status(404).json({ success: false, message: "User Not found" })
+        }
+        const updatedUser = await User.findByIdAndUpdate(user._id, {
+            $set: {
+                avatar: avatar
+            }
+        }, {
+            new: true
+        })
+        return res.status(200).json({ success: true, message: "Avatar Updated" })
+
+    } catch (error) {
+        console.log(error)
+                return res.status(500).json({ success: false, message: "Internal server error while updateing avatar" })
+
+
+    }
+}
+
+
+
+const updateUserCoverImage = async (req, res) => {
+    
+    try {
+
+        const coverImageLocalpath = req.file?.path
+
+        if (!coverImageLocalpath) {
+            return res.status(404).json({ success: false, message: "coverImage required" })
+        }
+
+        const coverImage = await uploadOnCloudinary(coverImageLocalpath)
+        const user = req.userInfo
+
+        let existUser = await User.findById(user._id).select("-password -refrashToken")
+
+        if (!existUser) {
+            return res.status(404).json({ success: false, message: "User Not found" })
+        }
+        const updatedUser = await User.findByIdAndUpdate(user._id, {
+            $set: {
+                coverImage: coverImage
+            }
+        }, {
+            new: true
+        })
+        return res.status(200).json({ success: true, message: "Avatar Updated" })
+
+    } catch (error) {
+        console.log(error)
+                return res.status(500).json({ success: false, message: "Internal server error while updateing avatar" })
+
+
+    }
+}
 
 
 
 
 
 export {
-    registerUser, loginUser, logoutUser, getAllUsers, refrashAccessToken
+    registerUser, loginUser, logoutUser, getAllUsers, refrashAccessToken, changeCurrentUserPassword, getCurrentUser,
+    updateAccountDetails, updateUserCoverImage, forgetPassword
 }
