@@ -409,6 +409,80 @@ const updateUserCoverImage = async (req, res) => {
 }
 
 
+const getUserChannelProfile=async(req,res)=>{
+    const {userName}=req.params
+
+    if(!userName){
+        return res.status(404).json({success:false,message:"Username not found"})
+    }
+
+   const channel= await User.aggregate([
+    {
+        $match:{
+            userName:userName
+        }
+    },
+    {
+        $lookup:{
+            from:"subscriptions",
+            localField:"_id",
+            foreignField:"channel",
+            as:"subscribers"
+        }
+    },
+    {
+        $lookup:{
+            from:"subscriptions",
+            localField:"_id",
+            foreignField:"subscriber",
+            as:"subscribed to"
+        }
+    },
+    {
+        $addFields:{
+            subscriberCount:{
+                $size:"$subscribers"
+            },
+            channelSubscribeToCount:{
+                $size:"subscribed to"
+            },
+            isSubscribed:{
+                $cond:{
+                    if:{
+                        $in:[req.userInfo?._id,"$subscribers.subscriber"]
+                    },
+                    then:true,
+                    else:false
+                }
+            }
+        }
+    },
+    {
+        $project:{
+            fullName:1,
+            email:1,
+            userName:1,
+            subscriberCount:1,
+            channelSubscribeToCount:1,
+            isSubscribed:1,
+            avatar:1,
+            coverImage:1
+
+
+        }
+    }
+   ])
+
+    if(!channel.length){
+        return res.status(404).json({success:false,message:"Channel does not exists "})
+    }
+
+    return res.status(200)
+    .json({success:true,channel:channel[0],message:"user channel successfully fatched"})
+
+
+}
+
 
 
 
