@@ -1,5 +1,5 @@
 import express from "express"
-import { forgetPassword, getAllUsers, getCurrentUser, getUserChannelProfile, getWatchHistory, loginUser, logoutUser, refrashAccessToken, registerUser } from "../Controllers/userController.js"
+import { forgetPassword, getAllUsers, getCurrentUser, getUserChannelProfile, getWatchHistory, loginUser, logoutUser, refrashAccessToken, registerUser, updateUserAvatar, updateUserCoverImage } from "../Controllers/userController.js"
 
 import { upload } from "../Middlewares/multerMiddleware.js"
 
@@ -22,19 +22,25 @@ router.post("/login", loginUser)
 
 
 //secure routes
-router.get("/logout",auth,logoutUser)
+router.get("/logout", auth, logoutUser)
 
-router.get("/allusers",auth,getAllUsers)
+router.get("/allusers", auth, getAllUsers)
 
-router.get("/refrashToken",refrashAccessToken)
+router.get("/refrashToken", refrashAccessToken)
 
-router.post("/forgetpassword",auth,forgetPassword)
+router.patch("/forgetpassword", auth, forgetPassword)
 
-router.get("/current-user",auth,getCurrentUser)
+router.get("/current-user", auth, getCurrentUser)
 
-router.get("/user-profile",auth,getUserChannelProfile)
+router.get("/user-profile/:userName", auth, getUserChannelProfile)
 
-router.get("/watch-history",auth,getWatchHistory)
+router.get("/watch-history", auth, getWatchHistory)
+
+router.patch("/update-avatar", auth, upload.single("avatar"), updateUserAvatar)
+
+router.patch("/update-coverImage", auth, upload.single("coverImage"), updateUserCoverImage)
+
+
 
 
 

@@ -546,5 +546,5 @@ const getWatchHistory = async (req, res) => {
 
 export {
     registerUser, loginUser, logoutUser, getAllUsers, refrashAccessToken, changeCurrentUserPassword, getCurrentUser,
-    updateAccountDetails, updateUserCoverImage, forgetPassword,getUserChannelProfile,getWatchHistory
+    updateAccountDetails, updateUserCoverImage, forgetPassword,getUserChannelProfile,getWatchHistory,updateUserAvatar
 }
