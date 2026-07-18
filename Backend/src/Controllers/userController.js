@@ -1,5 +1,6 @@
 
 
+import mongoose from "mongoose"
 import { uploadOnCloudinary } from "../../utils/cloudnary.js"
 import { User } from "../Models/userModel.js"
 
@@ -337,7 +338,7 @@ const updateAccountDetails = async (req, res) => {
 
 
 const updateUserAvatar = async (req, res) => {
-   
+
     try {
 
         const avatarLocalpath = req.file?.path
@@ -365,7 +366,7 @@ const updateUserAvatar = async (req, res) => {
 
     } catch (error) {
         console.log(error)
-                return res.status(500).json({ success: false, message: "Internal server error while updateing avatar" })
+        return res.status(500).json({ success: false, message: "Internal server error while updateing avatar" })
 
 
     }
@@ -374,7 +375,7 @@ const updateUserAvatar = async (req, res) => {
 
 
 const updateUserCoverImage = async (req, res) => {
-    
+
     try {
 
         const coverImageLocalpath = req.file?.path
@@ -402,84 +403,141 @@ const updateUserCoverImage = async (req, res) => {
 
     } catch (error) {
         console.log(error)
-                return res.status(500).json({ success: false, message: "Internal server error while updateing avatar" })
+        return res.status(500).json({ success: false, message: "Internal server error while updateing avatar" })
 
 
     }
 }
 
 
-const getUserChannelProfile=async(req,res)=>{
-    const {userName}=req.params
+const getUserChannelProfile = async (req, res) => {
+    const { userName } = req.params
 
-    if(!userName){
-        return res.status(404).json({success:false,message:"Username not found"})
+    if (!userName) {
+        return res.status(404).json({ success: false, message: "Username not found" })
     }
 
-   const channel= await User.aggregate([
-    {
-        $match:{
-            userName:userName
-        }
-    },
-    {
-        $lookup:{
-            from:"subscriptions",
-            localField:"_id",
-            foreignField:"channel",
-            as:"subscribers"
-        }
-    },
-    {
-        $lookup:{
-            from:"subscriptions",
-            localField:"_id",
-            foreignField:"subscriber",
-            as:"subscribed to"
-        }
-    },
-    {
-        $addFields:{
-            subscriberCount:{
-                $size:"$subscribers"
-            },
-            channelSubscribeToCount:{
-                $size:"subscribed to"
-            },
-            isSubscribed:{
-                $cond:{
-                    if:{
-                        $in:[req.userInfo?._id,"$subscribers.subscriber"]
-                    },
-                    then:true,
-                    else:false
+    const channel = await User.aggregate([
+        {
+            $match: {
+                userName: userName
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers"
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribed to"
+            }
+        },
+        {
+            $addFields: {
+                subscriberCount: {
+                    $size: "$subscribers"
+                },
+                channelSubscribeToCount: {
+                    $size: "subscribed to"
+                },
+                isSubscribed: {
+                    $cond: {
+                        if: {
+                            $in: [req.userInfo?._id, "$subscribers.subscriber"]
+                        },
+                        then: true,
+                        else: false
+                    }
                 }
             }
+        },
+        {
+            $project: {
+                fullName: 1,
+                email: 1,
+                userName: 1,
+                subscriberCount: 1,
+                channelSubscribeToCount: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                coverImage: 1
+
+
+            }
         }
-    },
-    {
-        $project:{
-            fullName:1,
-            email:1,
-            userName:1,
-            subscriberCount:1,
-            channelSubscribeToCount:1,
-            isSubscribed:1,
-            avatar:1,
-            coverImage:1
+    ])
 
-
-        }
-    }
-   ])
-
-    if(!channel.length){
-        return res.status(404).json({success:false,message:"Channel does not exists "})
+    if (!channel.length) {
+        return res.status(404).json({ success: false, message: "Channel does not exists " })
     }
 
     return res.status(200)
-    .json({success:true,channel:channel[0],message:"user channel successfully fatched"})
+        .json({ success: true, channel: channel[0], message: "user channel successfully fatched" })
 
+
+}
+
+
+const getWatchHistory = async (req, res) => {
+    try {
+        const user = await User.aggregate([
+            {
+                $match: {
+                    _id: new mongoose.Types.ObjectId(req.userInfo.id)
+                }
+
+            },
+            {
+                $lookup: {
+                    from: "videos",
+                    localField: "watchHistory",
+                    foreignField: "_id",
+                    as: "watchHistory",
+                    pipeline: [
+                        {
+                            $lookup: {
+                                from: "users",
+                                localField: "owner",
+                                foreignField: "_id",
+                                as: "owner",
+                                pipeline: [
+                                    {
+                                        $project: {
+                                            fullName: 1,
+                                            userName: 1,
+                                            avatar: 1
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+        ])
+
+        return res.status(200).json({
+            success: true,
+            user: user[0].watchHistory,
+            message: "watch history fatched successfully"
+        })
+    } catch (error) {
+        console.log(error)
+
+        return res.status(500).json({
+            success: false,
+            message: "watch history could not fatched"
+        })
+
+
+    }
 
 }
 
@@ -488,5 +546,5 @@ const getUserChannelProfile=async(req,res)=>{
 
 export {
     registerUser, loginUser, logoutUser, getAllUsers, refrashAccessToken, changeCurrentUserPassword, getCurrentUser,
-    updateAccountDetails, updateUserCoverImage, forgetPassword
+    updateAccountDetails, updateUserCoverImage, forgetPassword,getUserChannelProfile,getWatchHistory
 }

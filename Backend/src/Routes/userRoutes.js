@@ -1,5 +1,5 @@
 import express from "express"
-import { forgetPassword, getAllUsers, loginUser, logoutUser, refrashAccessToken, registerUser } from "../Controllers/userController.js"
+import { forgetPassword, getAllUsers, getCurrentUser, getUserChannelProfile, getWatchHistory, loginUser, logoutUser, refrashAccessToken, registerUser } from "../Controllers/userController.js"
 
 import { upload } from "../Middlewares/multerMiddleware.js"
 
@@ -28,7 +28,15 @@ router.get("/allusers",auth,getAllUsers)
 
 router.get("/refrashToken",refrashAccessToken)
 
-router.post("/forgetpassword",forgetPassword)
+router.post("/forgetpassword",auth,forgetPassword)
+
+router.get("/current-user",auth,getCurrentUser)
+
+router.get("/user-profile",auth,getUserChannelProfile)
+
+router.get("/watch-history",auth,getWatchHistory)
+
+
 
 export default router
 
